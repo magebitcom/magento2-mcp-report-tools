@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::system">
+                    <resource id="Magebit_Mcp::mcp">
+                        <resource id="Magebit_Mcp::tools">
+
+                            <!-- Shopping cart reports -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_cart_products"
+                                      title="Tool: Products in Cart Report" sortOrder="100"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_cart_abandoned"
+                                      title="Tool: Abandoned Carts Report" sortOrder="101"/>
+
+                            <!-- Marketing reports -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_marketing_search_terms"
+                                      title="Tool: Search Terms Report" sortOrder="110"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_marketing_newsletter_problems"
+                                      title="Tool: Newsletter Problem Reports" sortOrder="111"/>
+
+                            <!-- Review reports -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_reviews_by_product"
+                                      title="Tool: Reviews by Product Report" sortOrder="120"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_reviews_by_customer"
+                                      title="Tool: Reviews by Customer Report" sortOrder="121"/>
+
+                            <!-- Sales aggregation reports -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_sales_orders"
+                                      title="Tool: Orders Sales Report" sortOrder="130"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_sales_tax"
+                                      title="Tool: Tax Sales Report" sortOrder="131"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_sales_invoiced"
+                                      title="Tool: Invoiced Sales Report" sortOrder="132"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_sales_shipping"
+                                      title="Tool: Shipping Sales Report" sortOrder="133"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_sales_refunds"
+                                      title="Tool: Refunds Sales Report" sortOrder="134"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_sales_coupons"
+                                      title="Tool: Coupons Sales Report" sortOrder="135"/>
+
+                            <!-- Customer reports -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_customers_orders"
+                                      title="Tool: Customer Order Count Report" sortOrder="140"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_customers_totals"
+                                      title="Tool: Customer Order Total Report" sortOrder="141"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_customers_new"
+                                      title="Tool: New Customers Report" sortOrder="142"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_customers_online"
+                                      title="Tool: Customers Online Report" sortOrder="143"/>
+
+                            <!-- Product reports -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_products_viewed"
+                                      title="Tool: Product Views Report" sortOrder="150"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_products_bestsellers"
+                                      title="Tool: Bestsellers Report" sortOrder="151"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_products_low_stock"
+                                      title="Tool: Low Stock Report" sortOrder="152"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_products_ordered"
+                                      title="Tool: Ordered Products Report" sortOrder="153"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_products_downloads"
+                                      title="Tool: Downloads Report" sortOrder="154"/>
+
+                            <!-- Dashboard roll-up -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_dashboard_summary"
+                                      title="Tool: Admin Dashboard Summary" sortOrder="160"/>
+
+                            <!-- Statistics refresh -->
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_statistics_status"
+                                      title="Tool: Statistics Refresh Status" sortOrder="200"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_statistics_refresh_recent"
+                                      title="Tool: Refresh Recent Statistics" sortOrder="201"/>
+                            <resource id="Magebit_McpReportTools::mcp_tool_reports_statistics_refresh_lifetime"
+                                      title="Tool: Refresh Lifetime Statistics" sortOrder="202"/>
+
+                        </resource>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

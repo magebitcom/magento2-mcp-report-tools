@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Register every report tool with the base module's ToolRegistry. -->
+    <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
+        <arguments>
+            <argument name="tools" xsi:type="array">
+                <!-- Shopping cart reports -->
+                <item name="reports.cart.products" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Cart\Products
+                </item>
+                <item name="reports.cart.abandoned" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Cart\Abandoned
+                </item>
+
+                <!-- Marketing reports -->
+                <item name="reports.marketing.search_terms" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Marketing\SearchTerms
+                </item>
+                <item name="reports.marketing.newsletter_problems" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Marketing\NewsletterProblems
+                </item>
+
+                <!-- Review reports -->
+                <item name="reports.reviews.by_product" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Reviews\ByProduct
+                </item>
+                <item name="reports.reviews.by_customer" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Reviews\ByCustomer
+                </item>
+
+                <!-- Sales aggregation reports -->
+                <item name="reports.sales.orders" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Sales\Orders
+                </item>
+                <item name="reports.sales.tax" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Sales\Tax
+                </item>
+                <item name="reports.sales.invoiced" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Sales\Invoiced
+                </item>
+                <item name="reports.sales.shipping" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Sales\Shipping
+                </item>
+                <item name="reports.sales.refunds" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Sales\Refunds
+                </item>
+                <item name="reports.sales.coupons" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Sales\Coupons
+                </item>
+
+                <!-- Customer reports -->
+                <item name="reports.customers.orders" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Customers\Orders
+                </item>
+                <item name="reports.customers.totals" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Customers\Totals
+                </item>
+                <item name="reports.customers.new" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Customers\NewCustomers
+                </item>
+                <item name="reports.customers.online" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Customers\Online
+                </item>
+
+                <!-- Product reports -->
+                <item name="reports.products.viewed" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Products\Viewed
+                </item>
+                <item name="reports.products.bestsellers" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Products\Bestsellers
+                </item>
+                <item name="reports.products.low_stock" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Products\LowStock
+                </item>
+                <item name="reports.products.ordered" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Products\Ordered
+                </item>
+                <item name="reports.products.downloads" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Products\Downloads
+                </item>
+
+                <!-- Dashboard roll-up -->
+                <item name="reports.dashboard.summary" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Dashboard\Summary
+                </item>
+
+                <!-- Statistics refresh -->
+                <item name="reports.statistics.status" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Statistics\Status
+                </item>
+                <item name="reports.statistics.refresh_recent" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Statistics\RefreshRecent
+                </item>
+                <item name="reports.statistics.refresh_lifetime" xsi:type="object">
+                    Magebit\McpReportTools\Tool\Statistics\RefreshLifetime
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Aggregation registry: code => Magento auto-factory for the resource model.
+         Mirrors vendor/magento/module-reports/etc/adminhtml/di.xml but goes through
+         the auto-generated *Factory so resource models stay out of ObjectManager. -->
+    <type name="Magebit\McpReportTools\Model\AggregationRegistry">
+        <arguments>
+            <argument name="aggregatorFactories" xsi:type="array">
+                <item name="sales" xsi:type="object">Magento\Sales\Model\ResourceModel\Report\OrderFactory</item>
+                <item name="tax" xsi:type="object">Magento\Tax\Model\ResourceModel\Report\TaxFactory</item>
+                <item name="shipping" xsi:type="object">Magento\Sales\Model\ResourceModel\Report\ShippingFactory</item>
+                <item name="invoiced" xsi:type="object">Magento\Sales\Model\ResourceModel\Report\InvoicedFactory</item>
+                <item name="refunded" xsi:type="object">Magento\Sales\Model\ResourceModel\Report\RefundedFactory</item>
+                <item name="coupons" xsi:type="object">Magento\SalesRule\Model\ResourceModel\Report\RuleFactory</item>
+                <item name="bestsellers" xsi:type="object">Magento\Sales\Model\ResourceModel\Report\BestsellersFactory</item>
+                <item name="viewed" xsi:type="object">Magento\Reports\Model\ResourceModel\Report\Product\ViewedFactory</item>
+            </argument>
+            <argument name="flagCodes" xsi:type="array">
+                <item name="sales" xsi:type="const">Magento\Reports\Model\Flag::REPORT_ORDER_FLAG_CODE</item>
+                <item name="tax" xsi:type="const">Magento\Reports\Model\Flag::REPORT_TAX_FLAG_CODE</item>
+                <item name="shipping" xsi:type="const">Magento\Reports\Model\Flag::REPORT_SHIPPING_FLAG_CODE</item>
+                <item name="invoiced" xsi:type="const">Magento\Reports\Model\Flag::REPORT_INVOICE_FLAG_CODE</item>
+                <item name="refunded" xsi:type="const">Magento\Reports\Model\Flag::REPORT_REFUNDED_FLAG_CODE</item>
+                <item name="coupons" xsi:type="const">Magento\Reports\Model\Flag::REPORT_COUPONS_FLAG_CODE</item>
+                <item name="bestsellers" xsi:type="const">Magento\Reports\Model\Flag::REPORT_BESTSELLERS_FLAG_CODE</item>
+                <item name="viewed" xsi:type="const">Magento\Reports\Model\Flag::REPORT_PRODUCT_VIEWED_FLAG_CODE</item>
+            </argument>
+        </arguments>
+    </type>
+
+</config>

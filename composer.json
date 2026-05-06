@@ -1,0 +1,19 @@
+{
+    "name": "magebitcom/magento2-mcp-report-tools",
+    "description": "Report-domain MCP tools for Magebit_Mcp (admin Reports menu + admin Dashboard + statistics refresh)",
+    "type": "magento2-module",
+    "license": "MIT",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
+        "magento/framework": "^103.0",
+        "magebitcom/magento2-mcp-module": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magebit\\McpReportTools\\": ""
+        }
+    }
+}
