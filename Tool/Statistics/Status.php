@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\McpReportTools\Tool\Statistics;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
@@ -30,7 +31,8 @@ class Status implements ToolInterface
 
     public function __construct(
         private readonly AggregationRegistry $registry,
-        private readonly FlagFactory $flagFactory
+        private readonly FlagFactory $flagFactory,
+        private readonly ?LoggerInterface $logger = null
     ) {
     }
 
@@ -114,7 +116,17 @@ class Status implements ToolInterface
         /** @var Flag $flag */
         $flag = $this->flagFactory->create();
         $flag->setReportFlagCode($flagCode);
-        $flag->loadSelf();
+        try {
+            $flag->loadSelf();
+        } catch (\Throwable $e) {
+            $this->logger?->warning(sprintf(
+                'reports.statistics.status: failed to load flag "%s": %s',
+                $flagCode,
+                $e->getMessage()
+            ));
+            $row['error'] = $e->getMessage();
+            return $row;
+        }
 
         if (!$flag->getId()) {
             return $row;
