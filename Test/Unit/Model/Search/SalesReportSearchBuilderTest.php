@@ -26,10 +26,7 @@ class SalesReportSearchBuilderTest extends TestCase
     protected function setUp(): void
     {
         $this->timezone = $this->createMock(TimezoneInterface::class);
-        $this->timezone->method('date')->willReturnCallback(
-            static fn(?string $raw = null): \DateTimeImmutable
-                => new \DateTimeImmutable($raw ?? 'now')
-        );
+        $this->timezone->method('getConfigTimezone')->willReturn('UTC');
         $this->collection = $this->createMock(AbstractCollection::class);
         $this->collection->method('setPeriod')->willReturnSelf();
         $this->collection->method('setDateRange')->willReturnSelf();
@@ -119,6 +116,51 @@ class SalesReportSearchBuilderTest extends TestCase
             'from' => '2026-04-01',
             'to' => '2026-04-10',
             'page_size' => 'lots',
+        ]);
+    }
+
+    public function testParsesIsoDateRegardlessOfTimezoneServiceBehavior(): void
+    {
+        $this->timezone->method('date')->willReturn(new \DateTimeImmutable('2179-10-04'));
+
+        $this->collection
+            ->expects($this->once())
+            ->method('setDateRange')
+            ->with('2026-04-11', '2026-05-11');
+
+        $meta = $this->builder()->apply($this->collection, [
+            'from' => '2026-04-11',
+            'to' => '2026-05-11',
+        ]);
+
+        $this->assertSame('2026-04-11', $meta['from']);
+        $this->assertSame('2026-05-11', $meta['to']);
+    }
+
+    public function testRejectsNonIsoDateFormat(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->builder()->apply($this->collection, [
+            'from' => '04/11/2026',
+            'to' => '05/11/2026',
+        ]);
+    }
+
+    public function testRejectsNonsenseDateString(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->builder()->apply($this->collection, [
+            'from' => 'tomorrow',
+            'to' => 'next year',
+        ]);
+    }
+
+    public function testRejectsOutOfRangeCalendarDate(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->builder()->apply($this->collection, [
+            'from' => '2026-13-45',
+            'to' => '2026-14-99',
         ]);
     }
 
