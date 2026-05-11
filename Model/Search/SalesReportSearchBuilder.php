@@ -105,6 +105,7 @@ class SalesReportSearchBuilder
 
     /**
      * @param array<string, mixed> $args
+     * @param string $key
      * @throws LocalizedException
      */
     private function readRequiredDate(array $args, string $key): string
@@ -113,10 +114,13 @@ class SalesReportSearchBuilder
         if (!is_string($raw) || $raw === '') {
             throw new LocalizedException(__('"%1" is required (YYYY-MM-DD).', $key));
         }
-        try {
-            $dt = $this->timezone->date($raw);
-        } catch (\Exception $e) {
-            throw new LocalizedException(__('Could not parse "%1": %2', $key, $e->getMessage()), $e);
+        $tz = new \DateTimeZone($this->timezone->getConfigTimezone());
+        $dt = \DateTimeImmutable::createFromFormat('!Y-m-d', $raw, $tz);
+        $errors = \DateTimeImmutable::getLastErrors();
+        $hasParseErrors = is_array($errors)
+            && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
+        if ($dt === false || $hasParseErrors) {
+            throw new LocalizedException(__('"%1" must be in YYYY-MM-DD format.', $key));
         }
         return $dt->format('Y-m-d');
     }
