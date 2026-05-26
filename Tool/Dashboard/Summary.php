@@ -10,6 +10,7 @@ namespace Magebit\McpReportTools\Tool\Dashboard;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
 use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
@@ -31,10 +32,16 @@ use Magento\Search\Model\ResourceModel\Query\CollectionFactory as SearchQueryCol
  * Intended as the "how is the store doing right now" convenience tool so an
  * agent doesn't need to chain five calls.
  */
-class Summary implements ToolInterface
+class Summary implements ToolInterface, UnderlyingAclAwareInterface
 {
     public const TOOL_NAME = 'reports.dashboard.summary';
     public const ACL_RESOURCE = 'Magebit_McpReportTools::mcp_tool_reports_dashboard_summary';
+
+    /**
+     * Equivalent admin-UI ACL — preserves "MCP cannot do what the admin UI
+     * cannot" against admins without rights to the admin Dashboard.
+     */
+    public const UNDERLYING_ACL_RESOURCE = 'Magento_Backend::dashboard';
 
     private const DEFAULT_PERIOD_DAYS = 30;
     private const DEFAULT_RECENT_ORDERS = 5;
@@ -96,6 +103,11 @@ class Summary implements ToolInterface
     public function getAclResource(): string
     {
         return self::ACL_RESOURCE;
+    }
+
+    public function getUnderlyingAclResource(): ?string
+    {
+        return self::UNDERLYING_ACL_RESOURCE;
     }
 
     public function getWriteMode(): WriteMode

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\McpReportTools\Tool\Customers;
 
+use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
 use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
@@ -21,10 +22,16 @@ use Magento\Framework\Data\Collection;
  * on the site, with cart contents, last URL, and last activity. Mirrors
  * admin *Customers → Now Online*.
  */
-class Online extends AbstractLiveReportTool
+class Online extends AbstractLiveReportTool implements UnderlyingAclAwareInterface
 {
     public const TOOL_NAME = 'reports.customers.online';
     public const ACL_RESOURCE = 'Magebit_McpReportTools::mcp_tool_reports_customers_online';
+
+    /**
+     * Equivalent admin-UI ACL — preserves "MCP cannot do what the admin UI
+     * cannot" against admins without rights to *Customers → Now Online*.
+     */
+    public const UNDERLYING_ACL_RESOURCE = 'Magento_Customer::online';
 
     public function __construct(
         RowSerializer $serializer,
@@ -70,6 +77,11 @@ class Online extends AbstractLiveReportTool
     public function getAclResource(): string
     {
         return self::ACL_RESOURCE;
+    }
+
+    public function getUnderlyingAclResource(): ?string
+    {
+        return self::UNDERLYING_ACL_RESOURCE;
     }
 
     protected function buildCollection(array $arguments): Collection
