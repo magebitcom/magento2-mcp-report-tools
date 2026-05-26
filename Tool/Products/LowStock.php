@@ -32,6 +32,15 @@ class LowStock implements ToolInterface
     public const MAX_PAGE_SIZE = 500;
     public const DEFAULT_PAGE_SIZE = 100;
 
+    /**
+     * Attribute allowlist mirroring the admin Low Stock listing
+     * ({@see \Magento\Reports\view\adminhtml\ui_component\product_lowstock_listing}).
+     * Holds the floor against leaking merchant-private attributes
+     * (`cost`, `special_price`, vendor-installed PIM fields) through
+     * `addAttributeToSelect('*')`.
+     */
+    private const SELECT_ATTRIBUTES = ['name', 'sku', 'price', 'status'];
+
     public function __construct(
         private readonly LowStockCollectionFactory $collectionFactory,
         private readonly RowSerializer $serializer
@@ -90,7 +99,7 @@ class LowStock implements ToolInterface
             ? (int) $arguments['store_id'] : null;
 
         $collection = $this->collectionFactory->create();
-        $collection->addAttributeToSelect('*')
+        $collection->addAttributeToSelect(self::SELECT_ATTRIBUTES)
             ->filterByIsQtyProductTypes()
             ->joinInventoryItem(['qty'])
             ->useManageStockFilter($storeId)

@@ -14,6 +14,7 @@ use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\McpReportTools\Model\Support\RowSerializer;
 use Magebit\McpReportTools\Tool\AbstractLiveReportTool;
 use Magento\Framework\Data\Collection;
+use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Reports\Model\ResourceModel\Quote\CollectionFactory as AbandonedCartCollectionFactory;
 
@@ -26,6 +27,25 @@ class Abandoned extends AbstractLiveReportTool
 {
     public const TOOL_NAME = 'reports.cart.abandoned';
     public const ACL_RESOURCE = 'Magebit_McpReportTools::mcp_tool_reports_cart_abandoned';
+
+    /**
+     * Columns mirrored from the admin Abandoned Carts grid
+     * ({@see \Magento\Reports\Block\Adminhtml\Shopcart\Abandoned\Grid::_prepareColumns}).
+     * Holds the floor against leaking `quote.password_hash` / `customer_dob` /
+     * `customer_taxvat` / `customer_gender` / `customer_note` — none of which
+     * the admin grid surfaces — through `SELECT main_table.*`.
+     */
+    private const SELECT_COLUMNS = [
+        'entity_id',
+        'store_id',
+        'customer_id',
+        'items_count',
+        'items_qty',
+        'created_at',
+        'updated_at',
+        'remote_ip',
+        'coupon_code',
+    ];
 
     public function __construct(
         RowSerializer $serializer,
@@ -74,6 +94,8 @@ class Abandoned extends AbstractLiveReportTool
         $collection = $this->collectionFactory->create();
         $storeIds = isset($arguments['store_id']) ? $this->coerceStoreIds($arguments['store_id']) : [];
         $collection->prepareForAbandonedReport($storeIds);
+        $collection->getSelect()->reset(Select::COLUMNS);
+        $collection->getSelect()->columns(self::SELECT_COLUMNS);
         $collection->addSubtotal($storeIds);
         $collection->addCustomerData();
         $collection->resolveCustomerNames();
