@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Magebit\McpReportTools\Model\Search;
 
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magento\Framework\Data\Collection;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 
 /**
  * Filter + paging translation for customer-oriented live reports
@@ -23,8 +23,11 @@ class CustomerReportSearchBuilder
     public const MAX_PAGE_SIZE = 500;
     public const DEFAULT_PAGE_SIZE = 100;
 
+    /**
+     * @param DateArgReader $dateReader
+     */
     public function __construct(
-        private readonly TimezoneInterface $timezone
+        private readonly DateArgReader $dateReader
     ) {
     }
 
@@ -71,19 +74,13 @@ class CustomerReportSearchBuilder
 
     /**
      * @param array<string, mixed> $args
+     * @param string $key
+     * @return string
      * @throws LocalizedException
      */
     private function readDate(array $args, string $key): string
     {
-        $raw = $args[$key] ?? null;
-        if (!is_string($raw) || $raw === '') {
-            throw new LocalizedException(__('"%1" is required (YYYY-MM-DD).', $key));
-        }
-        try {
-            return $this->timezone->date($raw)->format('Y-m-d');
-        } catch (\Exception $e) {
-            throw new LocalizedException(__('Could not parse "%1": %2', $key, $e->getMessage()), $e);
-        }
+        return $this->dateReader->required($args, $key);
     }
 
     /**

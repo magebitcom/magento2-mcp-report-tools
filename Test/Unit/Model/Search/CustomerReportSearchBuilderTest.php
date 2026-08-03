@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\McpReportTools\Test\Unit\Model\Search;
 
 use Magebit\McpReportTools\Model\Search\CustomerReportSearchBuilder;
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Reports\Model\ResourceModel\Customer\Orders\Collection as CustomerOrdersCollection;
@@ -26,9 +27,24 @@ class CustomerReportSearchBuilderTest extends TestCase
     protected function setUp(): void
     {
         $this->timezone = $this->createMock(TimezoneInterface::class);
+        $this->timezone->method('getConfigTimezone')->willReturn('America/New_York');
+        // Faithful stand-in for Magento's locale-lenient Timezone::date(): an en_US
+        // IntlDateFormatter SHORT parse, which reads "2026-07-27" as 2195-10-07.
+        // Kept so any reintroduction of that parser fails the ISO tests below.
         $this->timezone->method('date')->willReturnCallback(
-            static fn(?string $raw = null): \DateTimeImmutable
-                => new \DateTimeImmutable($raw ?? 'now')
+            static function (?string $raw = null): \DateTime {
+                $formatter = new \IntlDateFormatter(
+                    'en_US',
+                    \IntlDateFormatter::SHORT,
+                    \IntlDateFormatter::NONE,
+                    'UTC'
+                );
+                $timestamp = $raw === null ? false : $formatter->parse($raw);
+                if ($timestamp === false) {
+                    throw new \Exception(sprintf('Unparseable date "%s".', (string) $raw));
+                }
+                return (new \DateTime('now', new \DateTimeZone('UTC')))->setTimestamp((int) $timestamp);
+            }
         );
         $this->collection = $this->createMock(CustomerOrdersCollection::class);
         $this->collection->method('setDateRange')->willReturnSelf();
@@ -52,6 +68,29 @@ class CustomerReportSearchBuilderTest extends TestCase
         $this->assertSame('2026-03-01', $meta['from']);
         $this->assertSame('2026-03-31', $meta['to']);
         $this->assertSame([5], $meta['store_ids']);
+    }
+
+    public function testKeepsIsoDatesIntact(): void
+    {
+        $this->collection->expects($this->once())
+            ->method('setDateRange')
+            ->with('2026-07-27 00:00:00', '2026-07-30 23:59:59');
+
+        $meta = $this->builder()->apply($this->collection, [
+            'from' => '2026-07-27',
+            'to' => '2026-07-30',
+        ]);
+        $this->assertSame('2026-07-27', $meta['from']);
+        $this->assertSame('2026-07-30', $meta['to']);
+    }
+
+    public function testRejectsUsFormattedDate(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->builder()->apply($this->collection, [
+            'from' => '07/27/2026',
+            'to' => '07/30/2026',
+        ]);
     }
 
     public function testAcceptsStoreIdArray(): void
@@ -97,6 +136,6 @@ class CustomerReportSearchBuilderTest extends TestCase
 
     private function builder(): CustomerReportSearchBuilder
     {
-        return new CustomerReportSearchBuilder($this->timezone);
+        return new CustomerReportSearchBuilder(new DateArgReader($this->timezone));
     }
 }
