@@ -15,9 +15,9 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magebit\McpReportTools\Model\Support\RowSerializer;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Reports\Model\ResourceModel\Product\Sold\CollectionFactory as SoldCollectionFactory;
 
 /**
@@ -34,10 +34,15 @@ class Ordered implements ToolInterface
     public const MAX_PAGE_SIZE = 500;
     public const DEFAULT_PAGE_SIZE = 100;
 
+    /**
+     * @param SoldCollectionFactory $collectionFactory
+     * @param RowSerializer $serializer
+     * @param DateArgReader $dateReader
+     */
     public function __construct(
         private readonly SoldCollectionFactory $collectionFactory,
         private readonly RowSerializer $serializer,
-        private readonly TimezoneInterface $timezone
+        private readonly DateArgReader $dateReader
     ) {
     }
 
@@ -147,18 +152,12 @@ class Ordered implements ToolInterface
 
     /**
      * @param array<string, mixed> $args
+     * @param string $key
+     * @return string
      * @throws LocalizedException
      */
     private function readDate(array $args, string $key): string
     {
-        $raw = $args[$key] ?? null;
-        if (!is_string($raw) || $raw === '') {
-            throw new LocalizedException(__('"%1" is required (YYYY-MM-DD).', $key));
-        }
-        try {
-            return $this->timezone->date($raw)->format('Y-m-d');
-        } catch (\Exception $e) {
-            throw new LocalizedException(__('Could not parse "%1": %2', $key, $e->getMessage()), $e);
-        }
+        return $this->dateReader->required($args, $key);
     }
 }

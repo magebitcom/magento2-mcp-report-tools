@@ -16,6 +16,7 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magebit\McpReportTools\Model\Support\RowSerializer;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
@@ -49,12 +50,21 @@ class Summary implements ToolInterface, UnderlyingAclAwareInterface
     private const DEFAULT_TOP_LISTS = 5;
     private const MAX_TOP_LISTS = 50;
 
+    /**
+     * @param OrderReportCollectionFactory $ordersFactory
+     * @param BestsellersReportCollectionFactory $bestsellersFactory
+     * @param SearchQueryCollectionFactory $searchTermsFactory
+     * @param RowSerializer $serializer
+     * @param TimezoneInterface $timezone
+     * @param DateArgReader $dateReader
+     */
     public function __construct(
         private readonly OrderReportCollectionFactory $ordersFactory,
         private readonly BestsellersReportCollectionFactory $bestsellersFactory,
         private readonly SearchQueryCollectionFactory $searchTermsFactory,
         private readonly RowSerializer $serializer,
-        private readonly TimezoneInterface $timezone
+        private readonly TimezoneInterface $timezone,
+        private readonly DateArgReader $dateReader
     ) {
     }
 
@@ -178,30 +188,12 @@ class Summary implements ToolInterface, UnderlyingAclAwareInterface
         $now = $this->timezone->date();
         $defaultFrom = (clone $now)->modify(sprintf('-%d days', self::DEFAULT_PERIOD_DAYS));
 
-        $from = $this->parseOptionalDate($arguments['period_from'] ?? null) ?? $defaultFrom->format('Y-m-d');
-        $to = $this->parseOptionalDate($arguments['period_to'] ?? null) ?? $now->format('Y-m-d');
+        $from = $this->dateReader->optional($arguments, 'period_from') ?? $defaultFrom->format('Y-m-d');
+        $to = $this->dateReader->optional($arguments, 'period_to') ?? $now->format('Y-m-d');
         if ($from > $to) {
             throw new LocalizedException(__('"period_from" must be on or before "period_to".'));
         }
         return [$from, $to];
-    }
-
-    /**
-     * @throws LocalizedException
-     */
-    private function parseOptionalDate(mixed $raw): ?string
-    {
-        if ($raw === null || $raw === '') {
-            return null;
-        }
-        if (!is_string($raw)) {
-            throw new LocalizedException(__('Period bounds must be ISO date strings.'));
-        }
-        try {
-            return $this->timezone->date($raw)->format('Y-m-d');
-        } catch (\Exception $e) {
-            throw new LocalizedException(__('Could not parse date "%1": %2', $raw, $e->getMessage()), $e);
-        }
     }
 
     private function clampLimit(mixed $raw, int $max): int

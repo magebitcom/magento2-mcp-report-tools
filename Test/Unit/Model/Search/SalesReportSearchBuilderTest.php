@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\McpReportTools\Test\Unit\Model\Search;
 
 use Magebit\McpReportTools\Model\Search\SalesReportSearchBuilder;
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Reports\Model\ResourceModel\Report\Collection\AbstractCollection;
@@ -166,6 +167,6 @@ class SalesReportSearchBuilderTest extends TestCase
 
     private function builder(): SalesReportSearchBuilder
     {
-        return new SalesReportSearchBuilder($this->timezone);
+        return new SalesReportSearchBuilder(new DateArgReader($this->timezone));
     }
 }
