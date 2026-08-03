@@ -32,7 +32,7 @@ bin/magento cache:flush
 | Tool | What it does |
 |---|---|
 | `reports.cart.products` | Products currently sitting in open carts with quantities and carts count. |
-| `reports.cart.abandoned` | Quotes that started checkout but were not converted. |
+| `reports.cart.abandoned` | Quotes that started checkout but were not converted. Optional `from`/`to` (YYYY-MM-DD) narrow the report by last-updated date. |
 
 ### Marketing (live)
 
