@@ -276,11 +276,15 @@ class Summary implements ToolInterface, UnderlyingAclAwareInterface
             }
             $rows[] = [
                 'entity_id' => isset($data['entity_id']) && is_numeric($data['entity_id']) ? (int) $data['entity_id'] : null,
-                'increment_id' => isset($data['increment_id']) ? (string) $data['increment_id'] : null,
+                'increment_id' => isset($data['increment_id']) && is_scalar($data['increment_id'])
+                    ? (string) $data['increment_id'] : null,
                 'store_id' => isset($data['store_id']) && is_numeric($data['store_id']) ? (int) $data['store_id'] : null,
-                'customer_name' => isset($data['customer_name']) ? (string) $data['customer_name'] : null,
-                'customer_email' => isset($data['customer_email']) ? (string) $data['customer_email'] : null,
-                'status' => isset($data['status']) ? (string) $data['status'] : null,
+                'customer_name' => isset($data['customer_name']) && is_scalar($data['customer_name'])
+                    ? (string) $data['customer_name'] : null,
+                'customer_email' => isset($data['customer_email']) && is_scalar($data['customer_email'])
+                    ? (string) $data['customer_email'] : null,
+                'status' => isset($data['status']) && is_scalar($data['status'])
+                    ? (string) $data['status'] : null,
                 'items_count' => isset($data['items_count']) && is_numeric($data['items_count']) ? (int) $data['items_count'] : null,
                 'grand_total' => isset($data['grand_total']) && is_numeric($data['grand_total']) ? (float) $data['grand_total'] : null,
                 'created_at' => isset($data['created_at']) ? (string) $data['created_at'] : null,
