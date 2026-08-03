@@ -18,6 +18,7 @@ use Magebit\McpReportTools\Tool\AbstractLiveReportTool;
 use Magento\Framework\Data\Collection;
 use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Reports\Model\ResourceModel\Quote\Collection as AbandonedCartCollection;
 use Magento\Reports\Model\ResourceModel\Quote\CollectionFactory as AbandonedCartCollectionFactory;
 
 /**
@@ -112,7 +113,6 @@ class Abandoned extends AbstractLiveReportTool
         $collection->getSelect()->columns(self::SELECT_COLUMNS);
         $collection->addSubtotal($storeIds);
         $collection->addCustomerData();
-        $collection->resolveCustomerNames();
 
         $from = $this->dateReader->optional($arguments, 'from');
         if ($from !== null) {
@@ -130,6 +130,20 @@ class Abandoned extends AbstractLiveReportTool
         }
 
         return $collection;
+    }
+
+    /**
+     * Deferred until paging is applied: `resolveCustomerNames()` loads the
+     * collection, and a loaded collection ignores any later filter or limit.
+     *
+     * @param Collection $collection
+     * @return void
+     */
+    protected function afterPaging(Collection $collection): void
+    {
+        if ($collection instanceof AbandonedCartCollection) {
+            $collection->resolveCustomerNames();
+        }
     }
 
     /**

@@ -10,6 +10,7 @@ namespace Magebit\McpReportTools\Test\Unit\Tool\Cart;
 
 use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magebit\McpReportTools\Model\Support\RowSerializer;
+use Magebit\McpReportTools\Tool\AbstractLiveReportTool;
 use Magebit\McpReportTools\Tool\Cart\Abandoned;
 use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
@@ -21,6 +22,15 @@ use PHPUnit\Framework\TestCase;
 
 class AbandonedTest extends TestCase
 {
+    /**
+     * Ordered log of the collection calls that matter for correctness. A mocked
+     * collection has no load state, so ordering against the load-triggering
+     * `resolveCustomerNames()` is what these tests assert.
+     *
+     * @var array<int, array<int, mixed>>
+     */
+    private array $calls = [];
+
     /** @var TimezoneInterface&MockObject */
     private TimezoneInterface&MockObject $timezone;
 
@@ -35,6 +45,8 @@ class AbandonedTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->calls = [];
+
         $this->timezone = $this->createMock(TimezoneInterface::class);
         $this->timezone->method('getConfigTimezone')->willReturn('America/New_York');
 
@@ -47,10 +59,32 @@ class AbandonedTest extends TestCase
         $this->collection->method('prepareForAbandonedReport')->willReturnSelf();
         $this->collection->method('addSubtotal')->willReturnSelf();
         $this->collection->method('addCustomerData')->willReturnSelf();
-        $this->collection->method('setCurPage')->willReturnSelf();
-        $this->collection->method('setPageSize')->willReturnSelf();
-        $this->collection->method('getItems')->willReturn([]);
         $this->collection->method('getSize')->willReturn(0);
+
+        $this->collection->method('addFieldToFilter')
+            ->willReturnCallback(function (mixed $field, mixed $condition = null): QuoteCollection {
+                $this->calls[] = ['addFieldToFilter', $field, $condition];
+                return $this->collection;
+            });
+        $this->collection->method('setCurPage')
+            ->willReturnCallback(function (mixed $page): QuoteCollection {
+                $this->calls[] = ['setCurPage', $page];
+                return $this->collection;
+            });
+        $this->collection->method('setPageSize')
+            ->willReturnCallback(function (mixed $size): QuoteCollection {
+                $this->calls[] = ['setPageSize', $size];
+                return $this->collection;
+            });
+        $this->collection->method('resolveCustomerNames')
+            ->willReturnCallback(function (): void {
+                $this->calls[] = ['resolveCustomerNames'];
+            });
+        $this->collection->method('getItems')
+            ->willReturnCallback(function (): array {
+                $this->calls[] = ['getItems'];
+                return [];
+            });
 
         $this->collectionFactory = $this->createMock(QuoteCollectionFactory::class);
         $this->collectionFactory->method('create')->willReturn($this->collection);
@@ -90,45 +124,88 @@ class AbandonedTest extends TestCase
         $this->assertContains('entity_id', $columns);
     }
 
-    public function testAppliesStoreTimezoneDayBoundariesInUtc(): void
+    /**
+     * Guards the load-order bug: `resolveCustomerNames()` loads the collection,
+     * so every filter and both paging calls have to land before it.
+     */
+    public function testFiltersAndPagingAreAppliedBeforeTheCollectionLoads(): void
     {
-        $calls = $this->captureFilters();
-
-        $this->tool()->execute(['from' => '2026-07-27', 'to' => '2026-07-30']);
+        $this->tool()->execute([
+            'from' => '2026-07-27',
+            'to' => '2026-07-30',
+            'page' => 2,
+            'page_size' => 25,
+        ]);
 
         // America/New_York is UTC-4 in July, so the local day boundaries shift.
         $this->assertSame(
             [
-                ['main_table.updated_at', ['gteq' => '2026-07-27 04:00:00']],
-                ['main_table.updated_at', ['lteq' => '2026-07-31 03:59:59']],
+                ['addFieldToFilter', 'main_table.updated_at', ['gteq' => '2026-07-27 04:00:00']],
+                ['addFieldToFilter', 'main_table.updated_at', ['lteq' => '2026-07-31 03:59:59']],
+                ['setCurPage', 2],
+                ['setPageSize', 25],
+                ['resolveCustomerNames'],
+                ['getItems'],
             ],
-            $calls()
+            $this->calls
+        );
+    }
+
+    public function testPagingIsAppliedBeforeTheLoadWithoutDateFilters(): void
+    {
+        $this->tool()->execute([]);
+
+        $this->assertSame(
+            [
+                ['setCurPage', 1],
+                ['setPageSize', AbstractLiveReportTool::DEFAULT_PAGE_SIZE],
+                ['resolveCustomerNames'],
+                ['getItems'],
+            ],
+            $this->calls
         );
     }
 
     public function testAppliesFromOnly(): void
     {
-        $calls = $this->captureFilters();
-
         $this->tool()->execute(['from' => '2026-07-27']);
 
-        $this->assertSame([['main_table.updated_at', ['gteq' => '2026-07-27 04:00:00']]], $calls());
+        $this->assertSame(
+            [['addFieldToFilter', 'main_table.updated_at', ['gteq' => '2026-07-27 04:00:00']]],
+            $this->filterCalls()
+        );
     }
 
     public function testAppliesToOnly(): void
     {
-        $calls = $this->captureFilters();
-
         $this->tool()->execute(['to' => '2026-07-30']);
 
-        $this->assertSame([['main_table.updated_at', ['lteq' => '2026-07-31 03:59:59']]], $calls());
+        $this->assertSame(
+            [['addFieldToFilter', 'main_table.updated_at', ['lteq' => '2026-07-31 03:59:59']]],
+            $this->filterCalls()
+        );
     }
 
     public function testOmittedDatesApplyNoDateFilter(): void
     {
-        $this->collection->expects($this->never())->method('addFieldToFilter');
-
         $this->tool()->execute([]);
+
+        $this->assertSame([], $this->filterCalls());
+    }
+
+    public function testPageSizeIsCappedBeforeTheLoad(): void
+    {
+        $this->tool()->execute(['page_size' => 5000]);
+
+        $this->assertSame(
+            [
+                ['setCurPage', 1],
+                ['setPageSize', AbstractLiveReportTool::MAX_PAGE_SIZE],
+                ['resolveCustomerNames'],
+                ['getItems'],
+            ],
+            $this->calls
+        );
     }
 
     public function testRejectsUsFormattedDate(): void
@@ -143,25 +220,24 @@ class AbandonedTest extends TestCase
         $this->tool()->execute(['to' => 'last tuesday']);
     }
 
-    /**
-     * Records every `addFieldToFilter()` call; the returned closure yields them.
-     *
-     * @return callable(): array<int, array{0: mixed, 1: mixed}>
-     */
-    private function captureFilters(): callable
+    public function testRejectsNonIsoDateBeforeTheCollectionLoads(): void
     {
-        /** @var array<int, array{0: mixed, 1: mixed}> $calls */
-        $calls = [];
-        $this->collection->method('addFieldToFilter')
-            ->willReturnCallback(function (mixed $field, mixed $condition = null) use (&$calls): QuoteCollection {
-                $calls[] = [$field, $condition];
-                return $this->collection;
-            });
+        try {
+            $this->tool()->execute(['from' => '27-07-2026']);
+            $this->fail('Expected a LocalizedException.');
+        } catch (LocalizedException) {
+            $this->assertSame([], $this->calls);
+        }
+    }
 
-        return static function () use (&$calls): array {
-            /** @var array<int, array{0: mixed, 1: mixed}> $calls */
-            return $calls;
-        };
+    /**
+     * @return array<int, array<int, mixed>>
+     */
+    private function filterCalls(): array
+    {
+        return array_values(
+            array_filter($this->calls, static fn (array $call): bool => $call[0] === 'addFieldToFilter')
+        );
     }
 
     private function tool(): Abandoned
