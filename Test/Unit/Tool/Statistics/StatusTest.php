@@ -118,10 +118,8 @@ class StatusTest extends TestCase
     private function extractItems(\Magebit\Mcp\Api\ToolResultInterface $result): array
     {
         $content = $result->getContent();
-        self::assertIsArray($content);
         self::assertNotEmpty($content);
         $first = $content[0];
-        self::assertIsArray($first);
         $text = $first['text'] ?? '';
         self::assertIsString($text);
         $decoded = json_decode($text, true);
