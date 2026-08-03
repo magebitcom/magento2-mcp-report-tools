@@ -106,6 +106,20 @@ with `Magento_Reports::statistics` as the underlying Magento admin resource,
 so they block calls from admins who wouldn't be allowed to refresh stats in
 the admin UI.
 
+## Upgrade notes
+
+- **Date arguments are now strict ISO.** Every `from` / `to` (and similar)
+  date argument across all report tools must be `YYYY-MM-DD`; anything else
+  — including US-style `07/27/2026` or other locale formats that some tools
+  previously accepted — is now rejected with a validation error instead of
+  being silently mis-parsed into the wrong range.
+- **`reports.cart.abandoned` changes:**
+  - New optional `from` / `to` arguments filter by `updated_at`, evaluated
+    as store-timezone calendar days.
+  - `remote_ip` is no longer part of the response.
+  - `page_size` (default 100, capped at 500) is now actually enforced;
+    previously the tool could return the entire unbounded result set.
+
 ## Extending
 
 See `docs/EXTENDING.md` for:
