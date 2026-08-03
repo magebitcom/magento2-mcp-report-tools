@@ -287,7 +287,8 @@ class Summary implements ToolInterface, UnderlyingAclAwareInterface
                     ? (string) $data['status'] : null,
                 'items_count' => isset($data['items_count']) && is_numeric($data['items_count']) ? (int) $data['items_count'] : null,
                 'grand_total' => isset($data['grand_total']) && is_numeric($data['grand_total']) ? (float) $data['grand_total'] : null,
-                'created_at' => isset($data['created_at']) ? (string) $data['created_at'] : null,
+                'created_at' => isset($data['created_at']) && is_scalar($data['created_at'])
+                    ? (string) $data['created_at'] : null,
             ];
         }
         return $rows;

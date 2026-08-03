@@ -138,8 +138,8 @@ abstract class AbstractAggregatedReportTool implements ToolInterface
      * rather than all-strings (collection rows come back from the DB as
      * strings).
      *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @param array<array-key, mixed> $data
+     * @return array<array-key, mixed>
      */
     protected function normaliseRow(array $data): array
     {
