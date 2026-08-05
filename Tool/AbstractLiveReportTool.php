@@ -35,11 +35,26 @@ abstract class AbstractLiveReportTool implements ToolInterface
     /**
      * Build and configure the collection for the given tool arguments. Must
      * NOT call `setCurPage` / `setPageSize` — paging is applied uniformly
-     * by this base class.
+     * by this base class — and must NOT trigger a load (`getItems()`,
+     * `getData()`, `load()`): a loaded collection silently ignores every
+     * filter and limit added afterwards. Load-triggering enrichment belongs
+     * in {@see self::afterPaging()}.
      *
      * @param array<string, mixed> $arguments
      */
     abstract protected function buildCollection(array $arguments): Collection;
+
+    /**
+     * Hook for enrichment that has to run once paging is in place — typically
+     * because it loads the collection to post-process the rows.
+     *
+     * @param Collection $collection
+     * @return void
+     */
+    protected function afterPaging(Collection $collection): void
+    {
+        unset($collection);
+    }
 
     /**
      * Optional audit metadata beyond the standard `row_count` / `total_count`.
@@ -76,6 +91,7 @@ abstract class AbstractLiveReportTool implements ToolInterface
         $pageSize = min(static::MAX_PAGE_SIZE, max(1, (int) $sizeRaw));
         $collection->setCurPage($page);
         $collection->setPageSize($pageSize);
+        $this->afterPaging($collection);
 
         $rows = [];
         /** @var \Magento\Framework\DataObject $item */

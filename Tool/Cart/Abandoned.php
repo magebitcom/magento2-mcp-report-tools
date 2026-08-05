@@ -10,12 +10,15 @@ namespace Magebit\McpReportTools\Tool\Cart;
 
 use Magebit\Mcp\Model\Tool\Schema\Builder\ArrayBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magebit\McpReportTools\Model\Support\RowSerializer;
 use Magebit\McpReportTools\Tool\AbstractLiveReportTool;
 use Magento\Framework\Data\Collection;
 use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Reports\Model\ResourceModel\Quote\Collection as AbandonedCartCollection;
 use Magento\Reports\Model\ResourceModel\Quote\CollectionFactory as AbandonedCartCollectionFactory;
 
 /**
@@ -33,7 +36,8 @@ class Abandoned extends AbstractLiveReportTool
      * ({@see \Magento\Reports\Block\Adminhtml\Shopcart\Abandoned\Grid::_prepareColumns}).
      * Holds the floor against leaking `quote.password_hash` / `customer_dob` /
      * `customer_taxvat` / `customer_gender` / `customer_note` — none of which
-     * the admin grid surfaces — through `SELECT main_table.*`.
+     * the admin grid surfaces — through `SELECT main_table.*`. `remote_ip` is
+     * likewise omitted: it is personal data no cart report needs.
      */
     private const SELECT_COLUMNS = [
         'entity_id',
@@ -43,13 +47,18 @@ class Abandoned extends AbstractLiveReportTool
         'items_qty',
         'created_at',
         'updated_at',
-        'remote_ip',
         'coupon_code',
     ];
 
+    /**
+     * @param RowSerializer $serializer
+     * @param AbandonedCartCollectionFactory $collectionFactory
+     * @param DateArgReader $dateReader
+     */
     public function __construct(
         RowSerializer $serializer,
-        private readonly AbandonedCartCollectionFactory $collectionFactory
+        private readonly AbandonedCartCollectionFactory $collectionFactory,
+        private readonly DateArgReader $dateReader
     ) {
         parent::__construct($serializer);
     }
@@ -68,13 +77,19 @@ class Abandoned extends AbstractLiveReportTool
     {
         return 'Customer carts with items that were never converted to '
             . 'orders. Includes customer email/name, item count, subtotal, '
-            . 'created_at, updated_at. Mirrors admin *Reports → Shopping '
-            . 'Cart → Abandoned Carts*.';
+            . 'created_at, updated_at. Optional "from"/"to" (YYYY-MM-DD, store '
+            . 'timezone) narrow the report to carts last touched in that date '
+            . 'range. Mirrors admin *Reports → Shopping Cart → Abandoned '
+            . 'Carts*.';
     }
 
     public function getInputSchema(): array
     {
         return Schema::object()
+            ->string('from', fn (StringBuilder $s) => $s
+                ->description('Only carts abandoned on/after this date (YYYY-MM-DD, store timezone).'))
+            ->string('to', fn (StringBuilder $s) => $s
+                ->description('Only carts abandoned on/before this date (YYYY-MM-DD, store timezone).'))
             ->array('store_id', fn (ArrayBuilder $a) => $a->ofIntegers()
                 ->description('Store view ids to scope to. Omit for all stores.'))
             ->integer('page', fn (IntegerBuilder $i) => $i->minimum(1))
@@ -98,8 +113,37 @@ class Abandoned extends AbstractLiveReportTool
         $collection->getSelect()->columns(self::SELECT_COLUMNS);
         $collection->addSubtotal($storeIds);
         $collection->addCustomerData();
-        $collection->resolveCustomerNames();
+
+        $from = $this->dateReader->optional($arguments, 'from');
+        if ($from !== null) {
+            $collection->addFieldToFilter(
+                'main_table.updated_at',
+                ['gteq' => $this->dateReader->utcBoundary($from, false)]
+            );
+        }
+        $to = $this->dateReader->optional($arguments, 'to');
+        if ($to !== null) {
+            $collection->addFieldToFilter(
+                'main_table.updated_at',
+                ['lteq' => $this->dateReader->utcBoundary($to, true)]
+            );
+        }
+
         return $collection;
+    }
+
+    /**
+     * Deferred until paging is applied: `resolveCustomerNames()` loads the
+     * collection, and a loaded collection ignores any later filter or limit.
+     *
+     * @param Collection $collection
+     * @return void
+     */
+    protected function afterPaging(Collection $collection): void
+    {
+        if ($collection instanceof AbandonedCartCollection) {
+            $collection->resolveCustomerNames();
+        }
     }
 
     /**

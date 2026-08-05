@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Magebit\McpReportTools\Model\Search;
 
+use Magebit\McpReportTools\Model\Support\DateArgReader;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Reports\Model\ResourceModel\Report\Collection\AbstractCollection;
 
 /**
@@ -32,8 +32,11 @@ class SalesReportSearchBuilder
 
     public const PERIODS = [self::PERIOD_DAY, self::PERIOD_MONTH, self::PERIOD_YEAR];
 
+    /**
+     * @param DateArgReader $dateReader
+     */
     public function __construct(
-        private readonly TimezoneInterface $timezone
+        private readonly DateArgReader $dateReader
     ) {
     }
 
@@ -106,23 +109,12 @@ class SalesReportSearchBuilder
     /**
      * @param array<string, mixed> $args
      * @param string $key
+     * @return string
      * @throws LocalizedException
      */
     private function readRequiredDate(array $args, string $key): string
     {
-        $raw = $args[$key] ?? null;
-        if (!is_string($raw) || $raw === '') {
-            throw new LocalizedException(__('"%1" is required (YYYY-MM-DD).', $key));
-        }
-        $tz = new \DateTimeZone($this->timezone->getConfigTimezone());
-        $dt = \DateTimeImmutable::createFromFormat('!Y-m-d', $raw, $tz);
-        $errors = \DateTimeImmutable::getLastErrors();
-        $hasParseErrors = is_array($errors)
-            && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
-        if ($dt === false || $hasParseErrors) {
-            throw new LocalizedException(__('"%1" must be in YYYY-MM-DD format.', $key));
-        }
-        return $dt->format('Y-m-d');
+        return $this->dateReader->required($args, $key);
     }
 
     /**

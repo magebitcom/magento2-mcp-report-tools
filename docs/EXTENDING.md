@@ -173,6 +173,26 @@ class InventoryHealth extends AbstractLiveReportTool
 
 Register the tool and ACL the same way as above.
 
+### `buildCollection()` must never trigger a load
+
+`AbstractLiveReportTool::execute()` applies `setCurPage()` / `setPageSize()`
+(and calls `afterPaging()`) *after* `buildCollection()` returns. Don't call
+anything that loads the collection — `getItems()`, `getData()`, `load()`, a
+count — inside `buildCollection()`: once a collection is loaded, Magento
+collections silently ignore any filter, sort, or limit added afterwards, so
+the page and page-size arguments would be dropped without error. Filters and
+joins are fine there; loading is not.
+
+### The `afterPaging()` hook
+
+If enrichment needs the collection loaded — e.g. resolving related data per
+row that isn't available through a join — override `afterPaging()` instead
+of loading in `buildCollection()`. It runs after filters and paging have
+been applied to the collection, so the load it triggers only touches the
+already-paged rows. The default implementation is a no-op. See
+`Tool/Cart/Abandoned.php::afterPaging()` in this module, which uses it to
+resolve customer names for the current page only.
+
 If your report is a write operation (triggers recomputation, resets a
 cache, etc.), implement `Magebit\Mcp\Api\UnderlyingAclAwareInterface` and
 override `getWriteMode()` / `getConfirmationRequired()` — see
