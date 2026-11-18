@@ -93,12 +93,9 @@ class StatusTest extends TestCase
         ?int $state = null,
         ?\Throwable $throwingLoadSelf = null
     ): Flag {
-        // Flag exposes getLastUpdate/getState only via __call → addMethods()
-        // is the only way to mock them with strict_types on.
         $flag = $this->getMockBuilder(Flag::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['setReportFlagCode', 'loadSelf', 'getId'])
-            ->addMethods(['getLastUpdate', 'getState'])
             ->getMock();
         $flag->method('setReportFlagCode')->willReturnSelf();
         if ($throwingLoadSelf !== null) {
@@ -107,8 +104,7 @@ class StatusTest extends TestCase
             $flag->method('loadSelf')->willReturnSelf();
         }
         $flag->method('getId')->willReturn($id);
-        $flag->method('getLastUpdate')->willReturn($lastUpdate);
-        $flag->method('getState')->willReturn($state);
+        $flag->setData(['last_update' => $lastUpdate, 'state' => $state]);
         return $flag;
     }
 
